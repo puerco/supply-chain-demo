@@ -53,4 +53,4 @@ jobs:
       - name: Attach SBOM
         run: |
           set -e
-          cosign attach sbom ghcr.io/puerco/supply-chain-demo/octosay:latest
+          cosign attach sbom ghcr.io/puerco/supply-chain-demo/octosay:v0.0.0
