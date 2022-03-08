@@ -17,6 +17,10 @@ jobs:
       packages: write
       id-token: write
 
+    env:
+      COSIGN_EXPERIMENTAL: "true"
+      KO_DOCKER_REPO: ghcr.io/puerco/supply-chain-demo/octosay
+
     steps:
       - name: Checkout
         uses: actions/checkout@a12a3943b4bdde767164f792f33f40b04645d846 # v3
@@ -31,11 +35,15 @@ jobs:
 
       - name: Install sigstore cosign
         uses: sigstore/cosign-installer@581838fbedd492d2350a9ecd427a95d6de1e5d01 # v2.1.0
+
+      - name: build Image
+        run: go run mage.go buildImages
+
       - name: Build the outside SBOM
         run: |
           set -e
-          bom generate -o /tmp/sbom.spdx -c .sbom.yaml 
+          bom generate -o /tmp/sbom.spdx -c .sbom.yaml
       - name: Attach SBOM
         run: |
-          set -e 
+          set -e
           cosign attach sbom ghcr.io/puerco/supply-chain-demo/octosay:latest
