@@ -59,6 +59,10 @@ func Test() error {
 func BuildImages() error {
 	fmt.Println("Building images with ko...")
 
+	if err := EnsureKO(""); err != nil {
+		return err
+	}
+
 	os.Setenv("KOCACHE", "/tmp/ko")
 	os.Setenv("COSIGN_EXPERIMENTAL", "true")
 
