@@ -31,3 +31,11 @@ jobs:
 
       - name: Install sigstore cosign
         uses: sigstore/cosign-installer@581838fbedd492d2350a9ecd427a95d6de1e5d01 # v2.1.0
+      - name: Build the outside SBOM
+        run: |
+          set -e
+          bom generate -o /tmp/sbom.spdx -c .sbom.yaml 
+      - name: Attach SBOM
+        run: |
+          set -e 
+          cosign attach sbom ghcr.io/puerco/supply-chain-demo/octosay:latest
