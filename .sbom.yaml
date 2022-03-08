@@ -8,6 +8,3 @@ artifacts:
     - type: directory
       source: .
       gomodules: false
-    - type: image
-      source: ghcr.io/puerco/supply-chain-demo/octosay:v0.1.0
-      license: Apache-2.0
