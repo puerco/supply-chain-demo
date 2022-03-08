@@ -1,0 +1,13 @@
+---
+namespace: https://github.com/puerco/supply-chain-demo
+license: Apache-2.0
+name: octosay
+creator:
+    person: Carlos Panato (cpanato@chainguard.dev)
+artifacts:
+    - type: directory
+      source: .
+      gomodules: false
+    - type: image
+      source: ghcr.io/puerco/supply-chain-demo/octosay:latest
+      license: Apache-2.0
