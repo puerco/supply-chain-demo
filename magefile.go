@@ -73,21 +73,13 @@ func BuildImages() error {
 
 	if err := sh.RunV("ko", "build", "--bare",
 		"--platform=all", "--tags", getVersion(), "--tags", getCommit(),
-		"--image-refs", "imagerefs",
 		"github.com/puerco/supply-chain-demo"); err != nil {
 		return err
 	}
 
-	dat, err := os.ReadFile("./imagerefs")
-	if err != nil {
-		panic(err)
-	}
-
-	time.Sleep(15 * time.Second)
-
 	return sh.RunV("cosign", "sign", "-a", fmt.Sprintf("GIT_HASH=%s", getCommit()),
 		"-a", fmt.Sprintf("GIT_TAG=%s", getVersion()),
-		string(dat))
+		fmt.Sprintf("%s:%s", os.Getenv("KO_DOCKER_REPO"), getVersion()))
 }
 
 // BuildImagesLocal build images locally and not push
