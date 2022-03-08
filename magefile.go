@@ -22,7 +22,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"runtime"
 
 	"github.com/carolynvs/magex/pkg"
@@ -36,21 +35,10 @@ import (
 
 // Default target to run when none is specified
 // If not set, running mage will list available targets
-var Default = Verify
-
-const (
-	binDir    = "bin"
-	scriptDir = "scripts"
-)
-
-var boilerplateDir = filepath.Join(scriptDir, "boilerplate")
+var Default = BuildImagesLocal
 
 // All runs all targets for this repository
 func All() error {
-	if err := Verify(); err != nil {
-		return err
-	}
-
 	if err := Test(); err != nil {
 		return err
 	}
@@ -67,75 +55,32 @@ func Test() error {
 	return nil
 }
 
-// Verify runs repository verification scripts
-func Verify() error {
-	fmt.Println("Ensuring mage is available...")
-	if err := pkg.EnsureMage(""); err != nil {
-		return err
-	}
-
-	/*
-		fmt.Println("Running external dependency checks...")
-		if err := mage.VerifyDeps("v0.3.0", "", "", true); err != nil {
-			return err
-		}
-
-		fmt.Println("Running go module linter...")
-		if err := mage.VerifyGoMod(scriptDir); err != nil {
-			return err
-		}
-	*/
-	fmt.Println("Running golangci-lint...")
-	if err := mage.RunGolangCILint("v1.44.2", false); err != nil {
-		return err
-	}
-
-	if err := Build(); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// Build runs go build
-func Build() error {
-	fmt.Println("Running go build...")
-
-	ldFlag, err := mage.GenerateLDFlags()
-	if err != nil {
-		return err
-	}
-
-	os.Setenv("BUILD_LDFLAGS", ldFlag)
-
-	if err := mage.VerifyBuild(scriptDir); err != nil {
-		return err
-	}
-
-	fmt.Println("Binaries available in the output directory.")
-	return nil
-}
-
 // BuildImages build bom image using ko
 func BuildImages() error {
 	fmt.Println("Building images with ko...")
 
-	gitVersion := getVersion()
-	gitCommit := getCommit()
-	ldFlag, err := mage.GenerateLDFlags()
-	if err != nil {
-		return err
-	}
-	os.Setenv("BOM_LDFLAGS", ldFlag)
 	os.Setenv("KOCACHE", "/tmp/ko")
+	os.Setenv("COSIGN_EXPERIMENTAL", "true")
 
 	if os.Getenv("KO_DOCKER_REPO") == "" {
 		return errors.New("missing KO_DOCKER_REPO environment variable")
 	}
 
-	return sh.RunV("ko", "build", "--bare",
-		"--platform=all", "--tags", gitVersion, "--tags", gitCommit,
-		"github.com/puerco/supply-chain-demo")
+	if err := sh.RunV("ko", "build", "--bare",
+		"--platform=all", "--tags", getVersion(), "--tags", getCommit(),
+		"--image-refs", "imagerefs",
+		"github.com/puerco/supply-chain-demo"); err != nil {
+		return err
+	}
+
+	dat, err := os.ReadFile("./imagerefs")
+	if err != nil {
+		panic(err)
+	}
+
+	return sh.RunV("cosign", "sign", "-a", fmt.Sprintf("GIT_HASH=%s", getCommit()),
+		"-a", fmt.Sprintf("GIT_TAG=%s", getVersion()),
+		string(dat))
 }
 
 // BuildImagesLocal build images locally and not push
@@ -145,47 +90,11 @@ func BuildImagesLocal() error {
 		return err
 	}
 
-	os.Setenv("BUILD_LDFLAGS", generateLDFlags())
 	os.Setenv("KOCACHE", "/tmp/ko")
 
 	return sh.RunV("ko", "build", "--bare",
 		"--local", "--platform=linux/amd64",
 		"github.com/puerco/supply-chain-demo")
-}
-
-func BuildStaging() error {
-	fmt.Println("Ensuring mage is available...")
-	if err := pkg.EnsureMage(""); err != nil {
-		return err
-	}
-
-	if err := EnsureKO(""); err != nil {
-		return err
-	}
-
-	if err := EnsureCosign(""); err != nil {
-		return err
-	}
-
-	if err := Build(); err != nil {
-		return errors.Wrap(err, "building the binaries")
-	}
-
-	if err := BuildImages(); err != nil {
-		return errors.Wrap(err, "building the images")
-	}
-
-	// if err := sh.RunV("cd", "output"); err != nil {
-	// 	return errors.Wrap(err, "cd into output directory")
-	// }
-
-	// if err := sh.RunV("./bom-linux-amd64", "output", "generate", "-f", "bom-darwin-amd64",
-	// 	"-f", "bom-darwin-arm64", "-f", "bom-linux-amd64", "-f", "bom-linux-arm64",
-	// 	"-f", "bom-windows-amd64.exe", "-d", "../", "-o", "bom-sbom.sdpx"); err != nil {
-	// 	return errors.Wrap(err, "generating the bom")
-	// }
-
-	return nil
 }
 
 func Clean() {
@@ -237,11 +146,6 @@ func getBuildDateTime() string {
 
 	date, _ := sh.Output("date", "+%Y-%m-%dT%H:%M:%SZ")
 	return date
-}
-
-func generateLDFlags() string {
-	pkg := "github.com/puerco/supply-chain-demo/version"
-	return fmt.Sprintf("-X %[1]s.GitVersion=%[2]s -X %[1]s.gitCommit=%[3]s -X %[1]s.gitTreeState=%[4]s -X %[1]s.buildDate=%[5]s", pkg, getVersion(), getCommit(), getGitState(), getBuildDateTime())
 }
 
 // Maybe we can  move this to release-utils
