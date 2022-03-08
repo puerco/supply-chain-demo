@@ -19,7 +19,7 @@ jobs:
 
     env:
       COSIGN_EXPERIMENTAL: "true"
-      KO_DOCKER_REPO: ghcr.io/puerco/supply-chain-demo
+      KO_DOCKER_REPO: ghcr.io/puerco/supply-chain-demo/octosay
 
     steps:
       - name: Checkout
@@ -35,6 +35,13 @@ jobs:
 
       - name: Install sigstore cosign
         uses: sigstore/cosign-installer@581838fbedd492d2350a9ecd427a95d6de1e5d01 # v2.1.0
+
+      - name: Login to Docker Registry
+        uses: docker/login-action@dd4fa0671be5250ee6f50aedf4cb05514abda2c7 # v1.14.1
+        with:
+          username: ${{ github.repository_owner }}
+          password: ${{ github.GITHUB_TOKEN }}
+          registry: ghcr.io
 
       - name: build Image
         run: go run mage.go buildImages
