@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"time"
 
 	"github.com/carolynvs/magex/pkg"
 	"github.com/carolynvs/magex/pkg/archive"
@@ -81,6 +82,8 @@ func BuildImages() error {
 	if err != nil {
 		panic(err)
 	}
+
+	time.Sleep(15 * time.Second)
 
 	return sh.RunV("cosign", "sign", "-a", fmt.Sprintf("GIT_HASH=%s", getCommit()),
 		"-a", fmt.Sprintf("GIT_TAG=%s", getVersion()),
