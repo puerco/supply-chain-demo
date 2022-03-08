@@ -19,7 +19,7 @@ jobs:
 
     env:
       COSIGN_EXPERIMENTAL: "true"
-      KO_DOCKER_REPO: ghcr.io/puerco/supply-chain-demo/octosay
+      KO_DOCKER_REPO: ghcr.io/puerco/supply-chain-demo
 
     steps:
       - name: Checkout
