@@ -9,5 +9,5 @@ artifacts:
       source: .
       gomodules: false
     - type: image
-      source: ghcr.io/puerco/supply-chain-demo/octosay:latest
+      source: ghcr.io/puerco/supply-chain-demo/octosay:v0.0.0
       license: Apache-2.0
